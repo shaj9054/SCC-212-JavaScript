@@ -1,0 +1,46 @@
+"use strict";
+const testlib = require('./testlib.js');
+
+let sequence = ''; // Buffer to store the incoming sequence
+let counts = { 'AA': 0, 'CC': 0, 'TT': 0, 'GG': 0 }; // Initialize counts for specific sequences
+
+testlib.on('ready', function (patterns) {
+    console.log("Patterns:", patterns);
+    testlib.runTests(); // Initiates the tests once the framework is ready
+});
+
+testlib.on('data', function (data) {
+    sequence += data; // Append incoming data to the sequence buffer
+});
+
+testlib.on('reset', function () {
+    // Recursive function to count occurrences and report matches for a given pattern
+    const patternCountsAndMatches = (pattern, index) => {
+        if (index + pattern.length > sequence.length) return 0;
+
+        const currentPattern = sequence.substring(index, index + pattern.length);
+        let count = 0;
+        if (currentPattern === pattern) {
+            count = 1;
+            testlib.foundMatch(pattern, index); // Report the match
+        }
+        return count + patternCountsAndMatches(pattern, index + 1);
+    };
+
+    // Recursive function to update counts for each pattern
+    const updateCounts = (patterns) => {
+        if (patterns.length === 0) return;
+        const pattern = patterns[0];
+        counts[pattern] = patternCountsAndMatches(pattern, 0); // Count occurrences of the pattern
+        updateCounts(patterns.slice(1)); // Move to the next pattern
+    }
+ 
+    updateCounts(Object.keys(counts)); // Update counts for each pattern in the provided sequence
+
+    testlib.frequencyTable(counts); // Report frequency counts for each pattern
+    sequence = ''; // Reset sequence buffer for a new sequence
+    counts = { 'AA': 0, 'CC': 0, 'TT': 0, 'GG': 0 }; // Reset counts for a new sequence
+});
+
+testlib.setup(2); // Runs test 2
+

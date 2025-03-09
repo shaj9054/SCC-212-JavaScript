@@ -1,0 +1,142 @@
+"use strict";
+
+const testlib = require('./testlib.js');
+
+let currentSequence = '';
+let patterns = []; // To store the patterns
+let frequencyCounts = {}; // To keep track of frequency counts
+
+
+testlib.on('ready', function(inputPatterns) {
+    patterns = inputPatterns;
+    console.log("Patterns:", patterns);
+    // Initialize frequency counts for each pattern
+    patterns.forEach(pattern => {
+        frequencyCounts[pattern] = 0;
+    });
+    testlib.runTests();
+});
+
+
+testlib.on('data', function(data) {
+    currentSequence += data;
+});
+
+testlib.on('reset', function () {
+    // Recursive function to count occurrences and report matches for a given pattern
+    const patternCountsAndMatches = (pattern, index) => {
+        if (index + pattern.length > currentSequence.length) return 0;
+
+        let count = 0;
+        if (checkPatternMatch(currentSequence, pattern, index)) {
+            count = 1;
+            testlib.foundMatch(pattern, index); // Report the match
+        }
+        return count + patternCountsAndMatches(pattern, index + 1);
+    };
+
+    // Recursive function to update counts for each pattern
+    const updateCounts = (patterns) => {
+        if (patterns.length === 0) return;
+        const pattern = patterns[0];
+        frequencyCounts[pattern] = patternCountsAndMatches(pattern, 0); // Count occurrences of the pattern
+        updateCounts(patterns.slice(1)); // Move to the next pattern
+    }
+
+    updateCounts(patterns); // Update counts for each pattern in the provided sequence
+
+    testlib.frequencyTable(frequencyCounts); // Report frequency counts for each pattern
+    currentSequence = ''; // Reset sequence buffer for a new sequence
+    // Reset frequency counts for a new sequence
+    Object.keys(frequencyCounts).forEach(key => {
+        frequencyCounts[key] = 0;
+    });
+});
+
+function symbolMatches(symbol, nucleotide) {
+    // Extended map of uncertain nucleotides to their possible matches
+    const nucleotideMap = {
+        'A': ['A'],
+        'C': ['C'],
+        'G': ['G'],
+        'T': ['T'],
+        'R': ['A', 'G'],
+        'Y': ['C', 'T'],
+        'K': ['G', 'T'],
+        'M': ['A', 'C'],
+        'S': ['C', 'G'],
+        'W': ['A', 'T'],
+        'B': ['C', 'G', 'T'],
+        'D': ['A', 'G', 'T'],
+        'H': ['A', 'C', 'T'],
+        'V': ['A', 'C', 'G'],
+        'N': ['A', 'C', 'G', 'T']
+    };
+
+    return nucleotideMap[symbol].includes(nucleotide);
+}
+
+
+const patternCountsAndMatches = (pattern, index = 0, count = 0) => {
+    if (index + pattern.length > currentSequence.length) {
+        frequencyCounts[pattern] += count;
+        return;
+    }
+
+    if (checkPatternMatch(currentSequence, pattern, index)) {
+        count++;
+        testlib.foundMatch(pattern, index);
+    }
+
+    setTimeout(() => patternCountsAndMatches(pattern, index + 1, count), 0);
+};
+
+
+function checkPatternMatch(sequence, pattern, sequenceIndex) {
+    if (sequenceIndex + pattern.length > sequence.length) return false; // Ensure we don't go out of bounds
+
+    let sequencePart = sequence.substring(sequenceIndex, sequenceIndex + pattern.length);
+    let sequenceArray = sequencePart.split('');
+    let patternArray = pattern.split('');
+
+    return patternArray.every((char, index) => symbolMatches(char, sequenceArray[index]));
+}
+
+
+testlib.on('end', function () {
+    function processPattern(pattern, index = 0, count = 0) {
+        if (index > currentSequence.length - pattern.length) {
+            frequencyCounts[pattern] = count; // Update frequency count
+            processNextPattern(); // Move to the next pattern
+            return;
+        }
+
+        if (checkPatternMatch(currentSequence, pattern, index)) {
+            count++;
+            testlib.foundMatch(pattern, index); // Report the match
+        }
+
+        // Schedule next execution with setTimeout to avoid stack overflow
+        setTimeout(() => processPattern(pattern, index + 1, count), 0);
+    }
+
+    let currentPatternIndex = 0;
+
+    function processNextPattern() {
+        if (currentPatternIndex >= patterns.length) {
+            testlib.frequencyTable(frequencyCounts); // Report frequency counts
+            currentSequence = ''; // Reset sequence buffer for a new sequence
+            Object.keys(frequencyCounts).forEach(key => frequencyCounts[key] = 0); // Reset frequency counts
+            return;
+        }
+
+        processPattern(patterns[currentPatternIndex]);
+        currentPatternIndex++;
+    }
+
+    processNextPattern(); // Start processing patterns
+});
+
+
+testlib.setup(3); // Setup for Task 2
+

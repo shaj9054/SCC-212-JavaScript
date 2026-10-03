@@ -1,58 +1,54 @@
-# SCC212 – JavaScript Coursework
+# DNA Pattern Matching with JavaScript
 
-**DNA Pattern Matching**
+SCC-212 coursework exploring event-driven processing of DNA sequences with Node.js. The programs collect sequence data from a supplied callback-based harness, identify pattern matches and report positions and frequency counts.
 
-## Overview
+## Implementations
 
-This coursework implements a JavaScript program that processes streamed DNA sequences and identifies occurrences of given patterns. It reports both **match positions** and **frequency counts** using a provided testing framework (`testlib.js`).
+| File | Description |
+| --- | --- |
+| `task1&2` | Exact matching for the fixed patterns AA, CC, TT and GG. |
+| `task1and2vs` | Pattern matching with ambiguous IUPAC nucleotide symbols and a deferred scan at end of input. |
+| `Task Sources/testlib.js` | Supplied event and reporting harness. |
+| `Task Sources/minimal_demo.js` | Included harness example. |
+| `Task Sources/task*.data`, `task*.seq` | Sequence data and patterns for the tasks. |
 
----
+The implementation files are JavaScript even though their filenames have no `.js` extension.
 
-## Functionality
+## Features
 
-* Collects DNA sequence data incrementally
-* Matches patterns at all valid positions
-* Supports **ambiguous nucleotide symbols** (e.g. `R`, `Y`, `N`)
-* Reports each match position
-* Outputs a frequency table per pattern
-* Resets correctly between test cases
+- Handles `ready`, `data`, `reset` and, in the extended version, `end` callbacks.
+- Accumulates input characters into a sequence buffer.
+- Reports matches with their offsets and produces per-pattern frequency counts.
+- Checks sequence boundaries before comparing a pattern.
+- Maps ambiguous symbols to the bases they represent.
 
----
+### Supported IUPAC symbols
 
-## Approach
+A, C, G and T match themselves. R = A/G, Y = C/T, K = G/T, M = A/C, S = C/G, W = A/T, B = C/G/T, D = A/G/T, H = A/C/T, V = A/C/G and N = any base.
 
-* Event-driven architecture using `testlib` callbacks
-* Recursive pattern scanning across the sequence
-* Character-level matching using an IUPAC nucleotide mapping
-* Bounds checking to prevent invalid substring access
+## Requirements and setup
 
----
+Node.js is required. The harness uses Node's built-in `fs` module, so no npm packages are needed.
 
-## Supported Symbols
-
-Supports standard DNA bases (`A, C, G, T`) and ambiguous IUPAC symbols (e.g. `R, Y, K, M, S, W, B, D, H, V, N`).
-
----
-
-## Running the Program
+The scripts require `./testlib.js`, and the harness opens data files relative to the current working directory. Copy the supplied assets to the repository root before running:
 
 ```bash
-node yourScriptName.js
+git clone https://github.com/shaj9054/SCC-212-JavaScript.git
+cd SCC-212-JavaScript
+cp "Task Sources/testlib.js" .
+cp "Task Sources"/task*.data "Task Sources"/task*.seq .
+node 'task1&2'
+node task1and2vs
 ```
 
-Test configuration is selected via:
+On Windows, copy the same files using File Explorer or your shell's copy command.
 
-```js
-testlib.setup(2); // or testlib.setup(3)
-```
+The first script selects task 2 and the extended script selects task 3 via `testlib.setup(...)`.
 
----
+## Output and limitations
 
-## Module Details
+Matches use the harness's `[MATCH]` messages; frequency tables print each pattern and its count. The extended end-of-input path schedules scanning with `setTimeout`, but reset-time scanning remains recursive and may overflow the call stack on large inputs. Sequences are buffered in memory, so this is not bounded-memory streaming. Behaviour for unknown nucleotide symbols and empty pattern lines is not fully validated.
 
-* **Module:** SCC212 – JavaScript
-* **Language:** JavaScript (Node.js)
-* **Assessment:** Coursework
+## Project context
 
----
-
+**Module:** SCC-212, Lancaster University. **Language:** JavaScript / Node.js. **Author:** Mohammed Shajalal Sarwar. The supplied test harness is retained alongside the coursework implementations.
